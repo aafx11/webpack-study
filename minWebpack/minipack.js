@@ -14,18 +14,51 @@ const { transformFromAst } = require('babel-core');
  * 
  * 1.初始化打包参数                        Webpack 通过解析配置文件和Shell语句,获取到最终打包的参数
  * 
- * 2.开始编译                             加载所有配置的插件，根据打包的参数初始化 Compiler 对象，执行对象的 run 方法开始执行编译
+ * 2.开始编译前                            加载所有配置的插件，根据打包的参数初始化 Compiler 对象，执行对象的 run 方法开始执行编译
  * 
  * 3.读取入口文件（构建依赖图谱）           Webpack 从项目的entry入口文件开始递归分析，先是调用所配置的 loader 将模块编译成js，
- *                                        然后用 Parser 插件将js 转换成ast语法树，从配置的入口模块开始，通过 babel-traverse 遍历 AST 语法树，
- *                                        当代码中遇到require或者import 这些导入语句，就将这些引入的模块加入到依赖模块列表，
- *                                        同时对新找出的依赖模块继续进行递归分析，最终生成依赖图谱，在这个分析过程中，
- *                                        Webpack 会将路径加上文件名作为唯一标识，防止重复编译 
+ *                                       然后用 Parser 插件将js 转换成ast语法树，从配置的入口模块开始，通过 babel-traverse 遍历 AST 语法树，
+ *                                       当代码中遇到require或者import 这些导入语句，就将这些引入的模块加入到依赖模块列表，
+ *                                       同时对新找出的依赖模块继续进行递归分析，最终生成依赖图谱，在这个递归分析过程中，
+ *                                       Webpack 会将路径加上文件名作为唯一标识，防止重复编译 
  * 
- * 4.转换代码                              Webpack 会根据配置的插件，对代码进行压缩、合并、优化这些操作
+ * 4.转换代码                              Webpack 会根据配置的插件，对代码进行压缩、合并、优化这些操作（terser-webpack-plugin 压缩代码，webpack-bundle-analyzer打包资源图）
  * 
  * 5.输出代码                              最后根据依赖关系开始生成包含多个模块的 Chunk ，并输出到 output 目录 
  * 
+ */
+
+/**
+ * Compiler 负责文件监听和启动编译。Compiler 实例中包含了完整的 Webpack 配置，全局只有一个 Compiler 实例。
+ */
+
+
+/**
+ * 
+ * **compiler 上暴露的一些常用的钩子简介**
+| 钩子         | 类型              | 调用时机                                                             |
+| ------------ | ----------------- | -------------------------------------------------------------------- |
+| run          | AsyncSeriesHook   | 在编译器开始读取记录前执行                                           |
+| compile      | SyncHook          | 在一个新的 compilation 创建之前执行                                  |
+| compilation  | SyncHook          | 在一次 compilation 创建后执行插件                                    |
+| make         | AsyncParallelHook | 完成一次编译之前执行                                                 |
+| emit         | AsyncSeriesHook   | 在生成文件到 output 目录之前执行，回调参数： compilation             |
+| afterEmit    | AsyncSeriesHook   | 在生成文件到 output 目录之后执行                                     |
+| assetEmitted | AsyncSeriesHook   | 生成文件的时候执行，提供访问产出文件信息的入口，回调参数：file，info |
+| done         | AsyncSeriesHook   | 一次编译完成后执行，回调参数：stats                                  |
+
+#### 常用的 Plugin 插件
+
+| 插件名称                    | 作用                                                    |
+| --------------------------- | ------------------------------------------------------- |
+| html-webpack-plugin         | 生成 html 文件,引入公共的 js 和 css 资源                |
+| webpack-bundle-analyzer     | 对打包后的文件进行分析，生成资源分析图                  |
+| terser-webpack-plugin       | 代码压缩，移除 console.log 打印等                       |
+| HappyPack Plugin            | 开启多线程打包，提升打包速度                            |
+| Dllplugin                   | 动态链接库，将项目中依赖的三方模块抽离出来，单独打包    |
+| DllReferencePlugin          | 配合 Dllplugin，通过 manifest.json 映射到相关的依赖上去 |
+| clean-webpack-plugin        | 清理上一次项目生成的文件                                |
+| vue-skeleton-webpack-plugin | vue 项目实现骨架屏                                      |
  */
 
 /* 
